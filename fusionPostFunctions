@@ -1,0 +1,98 @@
+function updateTools(path){//create csv that automatically updates any time you post
+
+
+
+    try{
+    var file = new TextFile(path, false, "utf-8");
+    }catch(e){  //if file doesnt exist create new file in path and open it for reading
+      warning("file not found creating new file at: "+path)
+      var file = new TextFile(path,true,"utf-8");
+      file.writeln("Tool Number,Diameter,Description,Length below holder,Tool holder,Flute length,Vendor,Product ID")
+      file.close();
+      var file = new TextFile(path, false, "utf-8");
+    }
+    
+    storedTools=[];
+    
+    
+    try{
+      line = file.readln(); //skips first line
+      toolParameters = line.split(",") //get tool paramater names from first line
+      while (true){
+        line = file.readln();
+        storedTool = line.split(",");//gets all values seperated by comas
+        let toolObject={}//create a tool object
+        for (var i = 0; i < toolParameters.length ; ++i){ //iterate thru the parameters from first line
+          toolObject[toolParameters[i]]= storedTool[i]; //add parameters and their values to tool object
+        }
+        log("TOOLOBJECT="+toolObject["Tool Number"])
+        storedTools.push(toolObject)  //add tool object to array storing all tools
+      }
+      }
+      catch(e){
+       }
+    file.close()
+    
+    var file = new TextFile(path, true, "utf-8");
+    file.writeln("Tool Number,Diameter,Description,Length below holder,Tool holder,Flute length,Vendor,Product ID");
+    //open file to write
+    
+    var tools = getToolTable()
+    replacedTools = []      //store tool number of replaced tools
+    
+    for (var i = 0; i < tools.getNumberOfTools(); ++i) {
+    var tool = tools.getTool(i);
+    toolUsed = false
+    let toolObject={}
+    if (storedTools.length>0){
+    for (var j = 0; j < storedTools.length ; ++j){
+      if(parseInt(storedTools[j]["Tool Number"]) == tool.number){
+        toolUsed = true;
+        if(storedTools[j]["Description"].replace(/\W/g, "") != tool.description.replace(/\W/g, "")){
+        storedTools[j]["Diameter"] = tool.diameter.toFixed(4);
+        storedTools[j]["Description"] =tool.description.replace(/,/g,"");
+        storedTools[j]["Length below holder"] = toolFormat.format(tool.bodyLength);
+        storedTools[j]["Tool holder"] = tool.holderDescription;
+        storedTools[j]["Flute length"] = toolFormat.format(tool.fluteLength);
+        storedTools[j]["Vendor"] = tool.vendor;
+        storedTools[j]["Product ID"] = tool.productId;
+        storedTools[j]["Replaced"] = true   
+        break;
+    
+        }
+        
+        
+      }
+    }
+    }
+      if(!toolUsed){
+        toolObject["Tool Number"] =toolFormat.format(tool.number)   //toolFormat.format rounds value
+        toolObject["Description"] =tool.description.replace(/,/g,"");
+        toolObject["Diameter"] = tool.diameter.toFixed(4);
+        toolObject["Length below holder"] = toolFormat.format(tool.bodyLength);
+        toolObject["Tool holder"] = tool.holderDescription;
+        toolObject["Flute length"] = toolFormat.format(tool.fluteLength);
+        toolObject["Vendor"] = tool.vendor;
+        toolObject["Product ID"] = tool.productId;
+        storedTools.push(toolObject)
+      } 
+    }
+    
+    storedTools.sort(function(a,b){return parseInt(a["Tool Number"])-parseInt(b["Tool Number"])}); //sorts tools in descending order
+    
+    for (var i = 0; i < storedTools.length ; ++i){
+      entry=""
+      for (var j = 0; j < toolParameters.length ; ++j){
+        entry+= String(storedTools[i][toolParameters[j]]+",")
+      }
+      if (storedTools[i]["Replaced"]){
+        warning("TOOL "+storedTools[i]["Tool Number"]+" REPLACED")
+        entry+=",Replace tool!"
+      }
+      log(entry)
+      file.writeln(entry)
+    }
+    file.close();
+    
+    // executeNoWait("chrome","file:///C:/Users/james/AppData/Roaming/Autodesk/Fusion%20360%20CAM/Posts/toolTable.csv",false,"")
+    }
